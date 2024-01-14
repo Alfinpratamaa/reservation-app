@@ -13,12 +13,14 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 app.use(bodyParser.json());
 // connect to db
-
-connectDB(
-  "mongodb+srv://alfin:1234@cluster0.nijnvg6.mongodb.net/?retryWrites=true&w=majority"
-)
+const PORT = process.env.PORT;
+const DB = process.env.MONGO_URI;
+connectDB(DB)
   .then(() => {
     console.log("connected to db");
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
   })
   .catch((err) => {
     console.log(err);
@@ -43,6 +45,17 @@ app.post("/api/users", async (req, res) => {
     if (user) return res.status(400).json({ msg: "User already exists" });
   });
 
+  app.delete("/api/users/:id", async (req, res) => {
+    const { id } = req.params;
+    // check for existing user
+    await User.findById(id).then((user) => {
+      if (!user) return res.status(400).json({ msg: "User does not exist" });
+    });
+    await User.findByIdAndDelete(id).then(() => {
+      res.json({ msg: "User deleted" });
+    });
+  });
+
   const newUser = new User({
     name,
     email,
@@ -58,8 +71,4 @@ app.post("/api/users", async (req, res) => {
       },
     });
   });
-});
-
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
 });
